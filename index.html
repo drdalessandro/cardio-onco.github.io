@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salud Digital en Cardio-Oncología: Interoperabilidad FHIR</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Chosen Palette: Warm Medical Neutrals. Background: stone-50, Text: stone-800, Accents: rose-600 (Cardiology), teal-600 (Digital Health/FHIR), amber-500 (Alerts). -->
+    <!-- Application Structure Plan: A single-page scrolling narrative dashboard. 
+         1. Introduction to the Cardio-Oncology challenge. 
+         2. The Digital Solution (FHIR) using interactive HTML blocks. 
+         3. A simulated Patient Dashboard (María) showing longitudinal tracking of cardiotoxicity via interactive charts. 
+         This structure moves the user from the abstract problem to the technical solution, and finally to a tangible clinical application, maximizing understanding of the patient journey. -->
+    <!-- Visualization & Content Choices: 
+         - Cardiotoxicity Risk (Inform): Donut chart (Chart.js) showing incidence rates. 
+         - FHIR Interoperability (Organize/Flow): Interactive CSS grid/flex layout with hover states simulating data exchange (NO SVG used, strictly HTML/CSS/Unicode). 
+         - Patient Monitoring LVEF & Biomarkers (Change/Compare): Dual-axis Line chart (Chart.js) to show the inverse relationship between heart function dropping and damage markers rising during treatment. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        /* Custom Styles & Chart Container Enforcement */
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .small-chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+
+        .fhir-node {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .fhir-node:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(20, 184, 166, 0.3); /* teal shadow */
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom scrollbar for JSON view */
+        .json-view::-webkit-scrollbar {
+            width: 8px;
+        }
+        .json-view::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        .json-view::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            light: '#f0fdfa', // teal-50
+                            DEFAULT: '#0d9488', // teal-600
+                            dark: '#0f766e', // teal-700
+                        },
+                        cardio: {
+                            light: '#fff1f2', // rose-50
+                            DEFAULT: '#e11d48', // rose-600
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-stone-50 text-stone-800 antialiased leading-relaxed">
+
+    <!-- Header Section -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl" aria-hidden="true">&#129504;</span> <!-- Heart/Anatomy icon -->
+                <h1 class="text-2xl font-bold text-stone-900 tracking-tight">Cardio<span class="text-cardio">Oncología</span> Digital</h1>
+            </div>
+            <nav class="hidden md:flex gap-6 text-sm font-medium text-stone-600">
+                <a href="#contexto" class="hover:text-medical transition-colors">Contexto</a>
+                <a href="#arquitectura" class="hover:text-medical transition-colors">Estándar FHIR</a>
+                <a href="#paciente" class="hover:text-medical transition-colors">Seguimiento de Paciente</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-10 space-y-20">
+
+        <!-- Section 1: Contexto -->
+        <section id="contexto" class="scroll-mt-24">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h2 class="text-sm font-bold text-cardio uppercase tracking-wider mb-2">El Desafío Clínico</h2>
+                <h3 class="text-3xl md:text-4xl font-bold text-stone-900 mb-4">La Cardiotoxicidad en Tratamientos Oncológicos</h3>
+                <p class="text-stone-600 text-lg">
+                    Los avances en terapias contra el cáncer han mejorado significativamente la supervivencia. Sin embargo, muchos de estos tratamientos (como las antraciclinas o terapias dirigidas) pueden dañar el corazón. Esta sección explora la necesidad crítica de un seguimiento temprano.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
+                        <div class="flex items-start gap-4">
+                            <div class="text-3xl">&#9888;&#65039;</div> <!-- Warning icon -->
+                            <div>
+                                <h4 class="font-bold text-lg text-stone-900">El Problema de la Fragmentación</h4>
+                                <p class="text-stone-600 mt-2 text-sm">
+                                    Los datos del paciente residen en sistemas aislados: el historial oncológico en un software, las ecocardiografías en otro, y los laboratorios en un tercero. Detectar una caída en la función cardíaca a tiempo requiere una visión unificada.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
+                        <div class="flex items-start gap-4">
+                            <div class="text-3xl">&#128200;</div> <!-- Chart icon -->
+                            <div>
+                                <h4 class="font-bold text-lg text-stone-900">La Ventana de Oportunidad</h4>
+                                <p class="text-stone-600 mt-2 text-sm">
+                                    Identificar alteraciones sutiles en biomarcadores (como Troponina) o deformación miocárdica antes de que la Fracción de Eyección (FEVI) caiga, permite iniciar tratamientos cardioprotectores y evitar la interrupción de la quimioterapia.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm flex flex-col items-center">
+                    <h4 class="font-bold text-center text-stone-900 mb-4">Riesgo de Complicaciones Cardiovasculares a 5 Años</h4>
+                    <!-- Small Chart Container for Donut -->
+                    <div class="small-chart-container">
+                        <canvas id="prevalenceChart"></canvas>
+                    </div>
+                    <p class="text-xs text-stone-500 mt-4 text-center">Datos ilustrativos basados en cohortes de pacientes con terapias de alto riesgo.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Solución FHIR -->
+        <section id="arquitectura" class="bg-medical-light -mx-4 px-4 py-16 md:-mx-8 md:px-8 rounded-3xl">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h2 class="text-sm font-bold text-medical uppercase tracking-wider mb-2">Interoperabilidad Semántica</h2>
+                <h3 class="text-3xl font-bold text-stone-900 mb-4">El Rol del Estándar FHIR (HL7)</h3>
+                <p class="text-stone-600">
+                    FHIR (Fast Healthcare Interoperability Resources) permite que el Departamento de Oncología y el de Cardiología hablen el mismo idioma digital. Al modelar los datos clínicos en "Recursos", creamos un expediente longitudinal unificado e interoperable.
+                </p>
+                <p class="text-sm font-medium text-medical mt-4">&#10230; Haz clic en los nodos de la arquitectura para ver el modelo de datos subyacente.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <!-- Interactive Flow Diagram -->
+                <div class="lg:col-span-2 bg-white rounded-2xl p-8 shadow-sm border border-stone-200 relative">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-center h-full gap-8">
+                        
+                        <!-- Source Systems -->
+                        <div class="flex flex-col gap-6 w-full md:w-1/3">
+                            <div class="fhir-node bg-stone-50 border-2 border-stone-200 rounded-xl p-4 text-center" onclick="showFhirData('oncology')">
+                                <div class="text-2xl mb-2">&#127973;</div> <!-- Hospital -->
+                                <h4 class="font-bold text-sm">HCE Oncología</h4>
+                                <p class="text-xs text-stone-500 mt-1">Diagnóstico, Quimioterapia</p>
+                            </div>
+                            <div class="fhir-node bg-stone-50 border-2 border-stone-200 rounded-xl p-4 text-center" onclick="showFhirData('cardiology')">
+                                <div class="text-2xl mb-2">&#128147;</div> <!-- Heart -->
+                                <h4 class="font-bold text-sm">SIS Cardiología</h4>
+                                <p class="text-xs text-stone-500 mt-1">Ecocardiograma (FEVI, Strain)</p>
+                            </div>
+                            <div class="fhir-node bg-stone-50 border-2 border-stone-200 rounded-xl p-4 text-center" onclick="showFhirData('labs')">
+                                <div class="text-2xl mb-2">&#129514;</div> <!-- Lab -->
+                                <h4 class="font-bold text-sm">LIS Laboratorio</h4>
+                                <p class="text-xs text-stone-500 mt-1">Biomarcadores (Troponina, BNP)</p>
+                            </div>
+                        </div>
+
+                        <!-- Integration Engine (Arrows & Hub) -->
+                        <div class="hidden md:flex flex-col items-center justify-center text-medical text-3xl font-bold">
+                            &#10230;
+                            <div class="my-4 text-sm bg-medical text-white px-3 py-1 rounded-full">API REST</div>
+                            &#10230;
+                        </div>
+
+                        <!-- FHIR Server -->
+                        <div class="w-full md:w-1/3 flex justify-center">
+                            <div class="fhir-node bg-medical text-white rounded-2xl p-6 text-center shadow-lg w-full" onclick="showFhirData('fhir_server')">
+                                <div class="text-4xl mb-3">&#128452;</div> <!-- Cabinet -->
+                                <h4 class="font-bold text-lg">Servidor FHIR</h4>
+                                <ul class="text-xs text-medical-light mt-3 space-y-1 text-left bg-medical-dark p-3 rounded-lg">
+                                    <li>&#10003; Resource: Patient</li>
+                                    <li>&#10003; Resource: Condition</li>
+                                    <li>&#10003; Resource: Observation</li>
+                                    <li>&#10003; Resource: MedicationStatement</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Data Display Pane -->
+                <div class="bg-stone-900 rounded-2xl p-6 shadow-sm flex flex-col h-96 lg:h-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-mono text-sm text-stone-300">Visor de Recursos FHIR (JSON)</h4>
+                        <span class="flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-medical opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-medical"></span>
+                        </span>
+                    </div>
+                    <div class="bg-stone-950 rounded-lg p-4 flex-grow overflow-y-auto json-view border border-stone-700">
+                        <pre id="jsonDisplay" class="font-mono text-xs text-green-400 whitespace-pre-wrap">
+// Selecciona un nodo en el diagrama 
+// para inspeccionar el flujo de datos.
+
+{
+  "status": "waiting_for_input",
+  "message": "Haz clic en HCE, SIS o LIS"
+}
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Paciente / Seguimiento -->
+        <section id="paciente" class="scroll-mt-24">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h2 class="text-sm font-bold text-cardio uppercase tracking-wider mb-2">Cuadro de Mando Clínico</h2>
+                <h3 class="text-3xl font-bold text-stone-900 mb-4">Seguimiento del Paciente: Caso Clínico</h3>
+                <p class="text-stone-600">
+                    A continuación, se presenta un tablero interactivo generado a partir de datos FHIR agregados. Permite evaluar el estado inicial de un paciente y monitorear la aparición de signos de cardiotoxicidad a lo largo de los ciclos de tratamiento.
+                </p>
+            </div>
+
+            <!-- Patient Dashboard UI -->
+            <div class="bg-white rounded-2xl shadow-md border border-stone-200 overflow-hidden">
+                
+                <!-- Patient Header -->
+                <div class="bg-stone-50 border-b border-stone-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-medical rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner">
+                            MG
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-stone-900">María González</h2>
+                            <p class="text-sm text-stone-500">ID FHIR: pt-98765 | Edad: 52 años | Femenino</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1.5 rounded-full border border-rose-200">
+                            Cáncer de Mama (HER2+)
+                        </div>
+                        <div class="bg-stone-200 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-full border border-stone-300">
+                            Riesgo CV: Moderado
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="border-b border-stone-200 px-6 flex gap-6 bg-white">
+                    <button class="tab-btn py-4 text-sm font-bold text-medical border-b-2 border-medical focus:outline-none transition-colors" data-target="tab-inicial">
+                        1. Evaluación Inicial (Basal)
+                    </button>
+                    <button class="tab-btn py-4 text-sm font-medium text-stone-500 hover:text-stone-800 border-b-2 border-transparent focus:outline-none transition-colors" data-target="tab-seguimiento">
+                        2. Monitoreo y Seguimiento
+                    </button>
+                </div>
+
+                <!-- Tab Content: Inicial -->
+                <div id="tab-inicial" class="tab-content active p-6 md:p-8">
+                    <div class="grid md:grid-cols-3 gap-6">
+                        
+                        <!-- Column 1: Tratamiento -->
+                        <div class="bg-stone-50 rounded-xl p-5 border border-stone-200">
+                            <h3 class="text-sm font-bold text-stone-400 uppercase mb-4 flex items-center gap-2">
+                                &#128138; Plan Oncológico
+                            </h3>
+                            <ul class="space-y-3 text-sm">
+                                <li><span class="font-semibold text-stone-900">Droga Principal:</span> Trastuzumab (Cardiotóxico Tipo II)</li>
+                                <li><span class="font-semibold text-stone-900">Duración Prevista:</span> 12 meses</li>
+                                <li><span class="font-semibold text-stone-900">Frecuencia:</span> Cada 21 días</li>
+                            </ul>
+                        </div>
+
+                        <!-- Column 2: Cardiovascular Basal -->
+                        <div class="bg-stone-50 rounded-xl p-5 border border-stone-200">
+                            <h3 class="text-sm font-bold text-stone-400 uppercase mb-4 flex items-center gap-2">
+                                &#129504; Estado CV Basal
+                            </h3>
+                            <ul class="space-y-3 text-sm">
+                                <li><span class="font-semibold text-stone-900">Presión Arterial:</span> 125/80 mmHg</li>
+                                <li><span class="font-semibold text-stone-900">ECG:</span> Ritmo sinusal, sin alteraciones.</li>
+                                <li><span class="font-semibold text-stone-900">Comorbilidades:</span> Hipertensión leve (controlada).</li>
+                            </ul>
+                        </div>
+
+                        <!-- Column 3: Métricas Clave -->
+                        <div class="space-y-4">
+                            <div class="bg-medical-light border border-medical/20 rounded-xl p-4 flex justify-between items-center">
+                                <div>
+                                    <p class="text-xs font-bold text-medical uppercase">FEVI Basal (Ecocardiograma)</p>
+                                    <p class="text-2xl font-black text-stone-900">62<span class="text-lg text-stone-500 font-normal">%</span></p>
+                                </div>
+                                <div class="text-3xl text-medical opacity-50">&#128147;</div>
+                            </div>
+                            <div class="bg-stone-50 border border-stone-200 rounded-xl p-4 flex justify-between items-center">
+                                <div>
+                                    <p class="text-xs font-bold text-stone-500 uppercase">Troponina I (Laboratorio)</p>
+                                    <p class="text-2xl font-black text-stone-900">12<span class="text-lg text-stone-500 font-normal"> ng/L</span></p>
+                                </div>
+                                <div class="text-3xl text-stone-400 opacity-50">&#129514;</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Seguimiento -->
+                <div id="tab-seguimiento" class="tab-content p-6 md:p-8 bg-stone-50/50">
+                    
+                    <div class="mb-6 flex justify-between items-end">
+                        <div>
+                            <h3 class="text-lg font-bold text-stone-900">Evolución de Parámetros Cardíacos</h3>
+                            <p class="text-sm text-stone-600">Correlación entre la caída de FEVI y el aumento de biomarcadores durante el tratamiento.</p>
+                        </div>
+                        <!-- Interactive toggles for chart -->
+                        <div class="hidden md:flex gap-2">
+                            <button onclick="updateChart('all')" class="text-xs bg-white border border-stone-300 px-3 py-1.5 rounded hover:bg-stone-100 font-medium">Todos</button>
+                            <button onclick="updateChart('alert')" class="text-xs bg-rose-50 border border-rose-200 text-cardio px-3 py-1.5 rounded hover:bg-rose-100 font-medium">Ver Alerta (Mes 3)</button>
+                        </div>
+                    </div>
+
+                    <!-- Main Chart Container -->
+                    <div class="chart-container bg-white border border-stone-200">
+                        <canvas id="monitoringChart"></canvas>
+                    </div>
+
+                    <!-- Insight Box -->
+                    <div class="mt-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                        <div class="flex items-start gap-3">
+                            <div class="text-amber-500 mt-0.5">&#9888;&#65039;</div>
+                            <div>
+                                <h4 class="text-sm font-bold text-amber-900">Alerta de Sistema (Regla Clínica FHIR)</h4>
+                                <p class="text-sm text-amber-800 mt-1">
+                                    En el <strong>Mes 3</strong> (Ciclo 4), se detecta una caída relativa de la FEVI > 10% (de 62% a 54%) y una elevación de Troponina (35 ng/L). Sugerencia protocolar: Iniciar IECA/Beta-bloqueantes y derivar a consulta de Cardio-Oncología antes del próximo ciclo.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-900 text-stone-400 py-8 text-center text-sm border-t border-stone-800 mt-12">
+        <div class="max-w-6xl mx-auto px-4">
+            <p>&copy; 2026 EPA Bienestar IA | Salud Digital | Cardio Onco. Arquitectura conceptual de integración FHIR para Cardio-Oncología.</p>
+            <p class="mt-2 text-xs opacity-60">Los datos presentados son ficticios y con fines ilustrativos sobre el flujo de información.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 1. Tab Navigation Logic ---
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Remove active states
+                    tabBtns.forEach(b => {
+                        b.classList.remove('text-medical', 'border-medical', 'font-bold');
+                        b.classList.add('text-stone-500', 'font-medium', 'border-transparent');
+                    });
+                    tabContents.forEach(c => c.classList.remove('active'));
+
+                    // Add active state to clicked tab
+                    btn.classList.remove('text-stone-500', 'font-medium', 'border-transparent');
+                    btn.classList.add('text-medical', 'border-medical', 'font-bold');
+                    const targetId = btn.getAttribute('data-target');
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+
+            // --- 2. Chart.js Implementations ---
+            
+            // Global Chart Defaults
+            Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+            Chart.defaults.color = '#57534e'; // stone-600
+
+            // A. Prevalence Donut Chart
+            const ctxPrev = document.getElementById('prevalenceChart').getContext('2d');
+            new Chart(ctxPrev, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sin Complicaciones CV', 'Desarrolla Cardiotoxicidad'],
+                    datasets: [{
+                        data: [78, 22],
+                        backgroundColor: ['#e7e5e4', '#e11d48'], // stone-200, rose-600
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // B. Patient Monitoring Dual Axis Line Chart
+            const ctxMon = document.getElementById('monitoringChart').getContext('2d');
+            
+            // Baseline data
+            const labels = ['Basal', 'Mes 1', 'Mes 2', 'Mes 3 (Alerta)', 'Mes 4', 'Mes 5', 'Mes 6'];
+            const dataLVEF = [62, 61, 59, 54, 53, 55, 56]; // FEVI % (drops then stabilizes after intervention)
+            const dataTrop = [12, 15, 22, 35, 28, 18, 14]; // Troponin ng/L (spikes early)
+
+            window.patientChart = new Chart(ctxMon, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'FEVI (%) - Función de Bombeo',
+                            data: dataLVEF,
+                            borderColor: '#0d9488', // medical teal
+                            backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#0d9488',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            yAxisID: 'y',
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Troponina I (ng/L) - Daño Celular',
+                            data: dataTrop,
+                            borderColor: '#e11d48', // cardio rose
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointBackgroundColor: '#e11d48',
+                            pointRadius: 4,
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                        tooltip: {
+                            backgroundColor: 'rgba(28, 25, 23, 0.9)', // stone-900
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        // Wrap long labels conceptually by keeping tooltip clean
+                                        label = label.split(' - ')[0] + ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + (context.datasetIndex === 0 ? '%' : ' ng/L');
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'FEVI (%)', font: { size: 11, weight: 'bold' } },
+                            min: 40,
+                            max: 70,
+                            grid: { borderDash: [2, 4], color: '#e7e5e4' } // stone-200
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Troponina (ng/L)', font: { size: 11, weight: 'bold' } },
+                            min: 0,
+                            max: 50,
+                            grid: { drawOnChartArea: false } // only draw grid lines for the left axis
+                        }
+                    }
+                }
+            });
+        });
+
+        // --- 3. Interactive Chart Controls ---
+        function updateChart(view) {
+            const chart = window.patientChart;
+            if (!chart) return;
+
+            if (view === 'alert') {
+                // Highlight month 3
+                chart.options.plugins.annotation = {
+                    annotations: {
+                        line1: {
+                            type: 'line',
+                            xMin: 3,
+                            xMax: 3,
+                            borderColor: '#f59e0b', // amber
+                            borderWidth: 2,
+                            label: {
+                                display: true,
+                                content: 'Punto de Alerta',
+                                position: 'start'
+                            }
+                        }
+                    }
+                };
+                
+                // Emphasize data points at index 3
+                const meta0 = chart.getDatasetMeta(0);
+                const meta1 = chart.getDatasetMeta(1);
+                
+                chart.data.datasets[0].pointRadius = [5,5,5,10,5,5,5];
+                chart.data.datasets[0].pointBackgroundColor = ['#fff','#fff','#fff','#fef3c7','#fff','#fff','#fff'];
+                chart.data.datasets[0].pointBorderColor = ['#0d9488','#0d9488','#0d9488','#d97706','#0d9488','#0d9488','#0d9488'];
+                
+                chart.data.datasets[1].pointRadius = [4,4,4,8,4,4,4];
+
+            } else {
+                // Reset
+                delete chart.options.plugins.annotation;
+                chart.data.datasets[0].pointRadius = 5;
+                chart.data.datasets[0].pointBackgroundColor = '#fff';
+                chart.data.datasets[0].pointBorderColor = '#0d9488';
+                chart.data.datasets[1].pointRadius = 4;
+            }
+            chart.update();
+        }
+
+        // --- 4. FHIR Data Simulator ---
+        const fhirSnippets = {
+            oncology: {
+                resourceType: "MedicationStatement",
+                status: "active",
+                medicationCodeableConcept: {
+                    coding: [{ system: "http://snomed.info/sct", code: "387120005", display: "Trastuzumab" }]
+                },
+                subject: { reference: "Patient/pt-98765" },
+                effectivePeriod: { start: "2026-01-10" }
+            },
+            cardiology: {
+                resourceType: "Observation",
+                status: "final",
+                category: [{ coding: [{ code: "imaging", display: "Imaging" }] }],
+                code: { coding: [{ system: "http://loinc.org", code: "10230-1", display: "Left ventricular ejection fraction" }] },
+                subject: { reference: "Patient/pt-98765" },
+                effectiveDateTime: "2026-04-12T10:00:00Z",
+                valueQuantity: { value: 54, unit: "%", system: "http://unitsofmeasure.org", code: "%" },
+                interpretation: [{ coding: [{ code: "L", display: "Low" }] }]
+            },
+            labs: {
+                resourceType: "Observation",
+                status: "final",
+                category: [{ coding: [{ code: "laboratory", display: "Laboratory" }] }],
+                code: { coding: [{ system: "http://loinc.org", code: "49563-0", display: "Troponin I.cardiac [Mass/volume] in Serum" }] },
+                subject: { reference: "Patient/pt-98765" },
+                effectiveDateTime: "2026-04-10T08:30:00Z",
+                valueQuantity: { value: 35, unit: "ng/L", system: "http://unitsofmeasure.org", code: "ng/L" },
+                referenceRange: [{ high: { value: 14, unit: "ng/L" } }]
+            },
+            fhir_server: {
+                message: "Servidor FHIR Interoperable",
+                action: "Agregando datos de múltiples fuentes...",
+                bundleType: "searchset",
+                total_resources_linked: 48,
+                associated_patient: "pt-98765",
+                trigger_active: "Clinical Decision Support Rule Evaluation: TRUE"
+            }
+        };
+
+        function showFhirData(source) {
+            const display = document.getElementById('jsonDisplay');
+            const data = fhirSnippets[source];
+            
+            // Simple animation
+            display.style.opacity = 0;
+            
+            setTimeout(() => {
+                display.textContent = JSON.stringify(data, null, 2);
+                display.style.transition = 'opacity 0.3s';
+                display.style.opacity = 1;
+            }, 150);
+        }
+    </script>
+</body>
+</html>
