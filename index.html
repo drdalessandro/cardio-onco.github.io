@@ -1,658 +1,575 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salud Digital en Cardio-Oncología: Interoperabilidad FHIR</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Espacio Paciente · Cardio-Oncología — EPA Bienestar IA</title>
+<meta name="description" content="Información para pacientes sobre cardio-oncología, cardiotoxicidad y el programa de seguimiento. Basada en la Guía ESC 2022 (Sociedad Española de Cardiología)." />
 
-    <!-- Chosen Palette: Warm Medical Neutrals. Background: stone-50, Text: stone-800, Accents: rose-600 (Cardiology), teal-600 (Digital Health/FHIR), amber-500 (Alerts). -->
-    <!-- Application Structure Plan: A single-page scrolling narrative dashboard. 
-         1. Introduction to the Cardio-Oncology challenge. 
-         2. The Digital Solution (FHIR) using interactive HTML blocks. 
-         3. A simulated Patient Dashboard (María) showing longitudinal tracking of cardiotoxicity via interactive charts. 
-         This structure moves the user from the abstract problem to the technical solution, and finally to a tangible clinical application, maximizing understanding of the patient journey. -->
-    <!-- Visualization & Content Choices: 
-         - Cardiotoxicity Risk (Inform): Donut chart (Chart.js) showing incidence rates. 
-         - FHIR Interoperability (Organize/Flow): Interactive CSS grid/flex layout with hover states simulating data exchange (NO SVG used, strictly HTML/CSS/Unicode). 
-         - Patient Monitoring LVEF & Biomarkers (Change/Compare): Dual-axis Line chart (Chart.js) to show the inverse relationship between heart function dropping and damage markers rising during treatment. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Inter+Tight:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-    <style>
-        /* Custom Styles & Chart Container Enforcement */
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 350px;
-            max-height: 400px;
-            background-color: white;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        .small-chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 250px;
-            max-height: 300px;
-        }
-
-        .fhir-node {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .fhir-node:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(20, 184, 166, 0.3); /* teal shadow */
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.5s;
-        }
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Custom scrollbar for JSON view */
-        .json-view::-webkit-scrollbar {
-            width: 8px;
-        }
-        .json-view::-webkit-scrollbar-track {
-            background: #f1f5f9; 
-        }
-        .json-view::-webkit-scrollbar-thumb {
-            background: #cbd5e1; 
-            border-radius: 4px;
-        }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        medical: {
-                            light: '#f0fdfa', // teal-50
-                            DEFAULT: '#0d9488', // teal-600
-                            dark: '#0f766e', // teal-700
-                        },
-                        cardio: {
-                            light: '#fff1f2', // rose-50
-                            DEFAULT: '#e11d48', // rose-600
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-stone-50 text-stone-800 antialiased leading-relaxed">
-
-    <!-- Header Section -->
-    <header class="bg-white border-b border-stone-200 sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <span class="text-3xl" aria-hidden="true">&#129504;</span> <!-- Heart/Anatomy icon -->
-                <h1 class="text-2xl font-bold text-stone-900 tracking-tight">Cardio<span class="text-cardio">Oncología</span> Digital</h1>
-            </div>
-            <nav class="hidden md:flex gap-6 text-sm font-medium text-stone-600">
-                <a href="#contexto" class="hover:text-medical transition-colors">Contexto</a>
-                <a href="#arquitectura" class="hover:text-medical transition-colors">Estándar FHIR</a>
-                <a href="#paciente" class="hover:text-medical transition-colors">Seguimiento de Paciente</a>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-4 py-10 space-y-20">
-
-        <!-- Section 1: Contexto -->
-        <section id="contexto" class="scroll-mt-24">
-            <div class="text-center max-w-3xl mx-auto mb-10">
-                <h2 class="text-sm font-bold text-cardio uppercase tracking-wider mb-2">El Desafío Clínico</h2>
-                <h3 class="text-3xl md:text-4xl font-bold text-stone-900 mb-4">La Cardiotoxicidad en Tratamientos Oncológicos</h3>
-                <p class="text-stone-600 text-lg">
-                    Los avances en terapias contra el cáncer han mejorado significativamente la supervivencia. Sin embargo, muchos de estos tratamientos (como las antraciclinas o terapias dirigidas) pueden dañar el corazón. Esta sección explora la necesidad crítica de un seguimiento temprano.
-                </p>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-12 items-center">
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
-                        <div class="flex items-start gap-4">
-                            <div class="text-3xl">&#9888;&#65039;</div> <!-- Warning icon -->
-                            <div>
-                                <h4 class="font-bold text-lg text-stone-900">El Problema de la Fragmentación</h4>
-                                <p class="text-stone-600 mt-2 text-sm">
-                                    Los datos del paciente residen en sistemas aislados: el historial oncológico en un software, las ecocardiografías en otro, y los laboratorios en un tercero. Detectar una caída en la función cardíaca a tiempo requiere una visión unificada.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm">
-                        <div class="flex items-start gap-4">
-                            <div class="text-3xl">&#128200;</div> <!-- Chart icon -->
-                            <div>
-                                <h4 class="font-bold text-lg text-stone-900">La Ventana de Oportunidad</h4>
-                                <p class="text-stone-600 mt-2 text-sm">
-                                    Identificar alteraciones sutiles en biomarcadores (como Troponina) o deformación miocárdica antes de que la Fracción de Eyección (FEVI) caiga, permite iniciar tratamientos cardioprotectores y evitar la interrupción de la quimioterapia.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm flex flex-col items-center">
-                    <h4 class="font-bold text-center text-stone-900 mb-4">Riesgo de Complicaciones Cardiovasculares a 5 Años</h4>
-                    <!-- Small Chart Container for Donut -->
-                    <div class="small-chart-container">
-                        <canvas id="prevalenceChart"></canvas>
-                    </div>
-                    <p class="text-xs text-stone-500 mt-4 text-center">Datos ilustrativos basados en cohortes de pacientes con terapias de alto riesgo.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Section 2: Solución FHIR -->
-        <section id="arquitectura" class="bg-medical-light -mx-4 px-4 py-16 md:-mx-8 md:px-8 rounded-3xl">
-            <div class="text-center max-w-3xl mx-auto mb-10">
-                <h2 class="text-sm font-bold text-medical uppercase tracking-wider mb-2">Interoperabilidad Semántica</h2>
-                <h3 class="text-3xl font-bold text-stone-900 mb-4">El Rol del Estándar FHIR (HL7)</h3>
-                <p class="text-stone-600">
-                    FHIR (Fast Healthcare Interoperability Resources) permite que el Departamento de Oncología y el de Cardiología hablen el mismo idioma digital. Al modelar los datos clínicos en "Recursos", creamos un expediente longitudinal unificado e interoperable.
-                </p>
-                <p class="text-sm font-medium text-medical mt-4">&#10230; Haz clic en los nodos de la arquitectura para ver el modelo de datos subyacente.</p>
-            </div>
-
-            <div class="grid lg:grid-cols-3 gap-8">
-                <!-- Interactive Flow Diagram -->
-                <div class="lg:col-span-2 bg-white rounded-2xl p-8 shadow-sm border border-stone-200 relative">
-                    
-                    <div class="flex flex-col md:flex-row justify-between items-center h-full gap-8">
-                        
-                        <!-- Source Systems -->
-                        <div class="flex flex-col gap-6 w-full md:w-1/3">
-                            <div class="fhir-node bg-stone-50 border-2 border-stone-200 rounded-xl p-4 text-center" onclick="showFhirData('oncology')">
-                                <div class="text-2xl mb-2">&#127973;</div> <!-- Hospital -->
-                                <h4 class="font-bold text-sm">HCE Oncología</h4>
-                                <p class="text-xs text-stone-500 mt-1">Diagnóstico, Quimioterapia</p>
-                            </div>
-                            <div class="fhir-node bg-stone-50 border-2 border-stone-200 rounded-xl p-4 text-center" onclick="showFhirData('cardiology')">
-                                <div class="text-2xl mb-2">&#128147;</div> <!-- Heart -->
-                                <h4 class="font-bold text-sm">SIS Cardiología</h4>
-                                <p class="text-xs text-stone-500 mt-1">Ecocardiograma (FEVI, Strain)</p>
-                            </div>
-                            <div class="fhir-node bg-stone-50 border-2 border-stone-200 rounded-xl p-4 text-center" onclick="showFhirData('labs')">
-                                <div class="text-2xl mb-2">&#129514;</div> <!-- Lab -->
-                                <h4 class="font-bold text-sm">LIS Laboratorio</h4>
-                                <p class="text-xs text-stone-500 mt-1">Biomarcadores (Troponina, BNP)</p>
-                            </div>
-                        </div>
-
-                        <!-- Integration Engine (Arrows & Hub) -->
-                        <div class="hidden md:flex flex-col items-center justify-center text-medical text-3xl font-bold">
-                            &#10230;
-                            <div class="my-4 text-sm bg-medical text-white px-3 py-1 rounded-full">API REST</div>
-                            &#10230;
-                        </div>
-
-                        <!-- FHIR Server -->
-                        <div class="w-full md:w-1/3 flex justify-center">
-                            <div class="fhir-node bg-medical text-white rounded-2xl p-6 text-center shadow-lg w-full" onclick="showFhirData('fhir_server')">
-                                <div class="text-4xl mb-3">&#128452;</div> <!-- Cabinet -->
-                                <h4 class="font-bold text-lg">Servidor FHIR</h4>
-                                <ul class="text-xs text-medical-light mt-3 space-y-1 text-left bg-medical-dark p-3 rounded-lg">
-                                    <li>&#10003; Resource: Patient</li>
-                                    <li>&#10003; Resource: Condition</li>
-                                    <li>&#10003; Resource: Observation</li>
-                                    <li>&#10003; Resource: MedicationStatement</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- JSON Data Display Pane -->
-                <div class="bg-stone-900 rounded-2xl p-6 shadow-sm flex flex-col h-96 lg:h-auto">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="font-mono text-sm text-stone-300">Visor de Recursos FHIR (JSON)</h4>
-                        <span class="flex h-3 w-3">
-                          <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-medical opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-3 w-3 bg-medical"></span>
-                        </span>
-                    </div>
-                    <div class="bg-stone-950 rounded-lg p-4 flex-grow overflow-y-auto json-view border border-stone-700">
-                        <pre id="jsonDisplay" class="font-mono text-xs text-green-400 whitespace-pre-wrap">
-// Selecciona un nodo en el diagrama 
-// para inspeccionar el flujo de datos.
-
-{
-  "status": "waiting_for_input",
-  "message": "Haz clic en HCE, SIS o LIS"
+<style>
+:root{
+  --ink:#0E0F12;
+  --paper:#FBF7F1;
+  --paper-2:#F2EBDF;
+  --bone:#E5DDC9;
+  --rouge:#9A1B1F;
+  --rouge-deep:#6E0F12;
+  --rouge-soft:#F4D8D7;
+  --gold:#B08A47;
+  --moss:#3F4A2C;
+  --steel:#2A3340;
+  --steel-2:#5B6878;
+  --rule:rgba(14,15,18,0.16);
+  --rule-soft:rgba(14,15,18,0.08);
 }
-                        </pre>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Section 3: Paciente / Seguimiento -->
-        <section id="paciente" class="scroll-mt-24">
-            <div class="text-center max-w-3xl mx-auto mb-10">
-                <h2 class="text-sm font-bold text-cardio uppercase tracking-wider mb-2">Cuadro de Mando Clínico</h2>
-                <h3 class="text-3xl font-bold text-stone-900 mb-4">Seguimiento del Paciente: Caso Clínico</h3>
-                <p class="text-stone-600">
-                    A continuación, se presenta un tablero interactivo generado a partir de datos FHIR agregados. Permite evaluar el estado inicial de un paciente y monitorear la aparición de signos de cardiotoxicidad a lo largo de los ciclos de tratamiento.
-                </p>
-            </div>
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter Tight', -apple-system, sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
 
-            <!-- Patient Dashboard UI -->
-            <div class="bg-white rounded-2xl shadow-md border border-stone-200 overflow-hidden">
-                
-                <!-- Patient Header -->
-                <div class="bg-stone-50 border-b border-stone-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-16 h-16 bg-medical rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner">
-                            MG
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-stone-900">María González</h2>
-                            <p class="text-sm text-stone-500">ID FHIR: pt-98765 | Edad: 52 años | Femenino</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-3">
-                        <div class="bg-rose-100 text-rose-800 text-xs font-bold px-3 py-1.5 rounded-full border border-rose-200">
-                            Cáncer de Mama (HER2+)
-                        </div>
-                        <div class="bg-stone-200 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-full border border-stone-300">
-                            Riesgo CV: Moderado
-                        </div>
-                    </div>
-                </div>
+.serif{font-family:'Fraunces', Georgia, serif;}
+.serif-it{font-family:'Instrument Serif', Georgia, serif; font-style:italic;}
+.mono{font-family:'JetBrains Mono', monospace;}
 
-                <!-- Tabs -->
-                <div class="border-b border-stone-200 px-6 flex gap-6 bg-white">
-                    <button class="tab-btn py-4 text-sm font-bold text-medical border-b-2 border-medical focus:outline-none transition-colors" data-target="tab-inicial">
-                        1. Evaluación Inicial (Basal)
-                    </button>
-                    <button class="tab-btn py-4 text-sm font-medium text-stone-500 hover:text-stone-800 border-b-2 border-transparent focus:outline-none transition-colors" data-target="tab-seguimiento">
-                        2. Monitoreo y Seguimiento
-                    </button>
-                </div>
+h1, h2, h3{ font-family:'Fraunces', Georgia, serif; font-weight:400; letter-spacing:-0.018em; line-height:1.1; }
+h1{ font-size: clamp(2.4rem, 5.2vw, 4.6rem);}
+h2{ font-size: clamp(1.8rem, 3.5vw, 2.8rem); margin-bottom:20px;}
+h3{ font-size: 1.4rem; margin-bottom: 10px; color: var(--rouge-deep);}
 
-                <!-- Tab Content: Inicial -->
-                <div id="tab-inicial" class="tab-content active p-6 md:p-8">
-                    <div class="grid md:grid-cols-3 gap-6">
-                        
-                        <!-- Column 1: Tratamiento -->
-                        <div class="bg-stone-50 rounded-xl p-5 border border-stone-200">
-                            <h3 class="text-sm font-bold text-stone-400 uppercase mb-4 flex items-center gap-2">
-                                &#128138; Plan Oncológico
-                            </h3>
-                            <ul class="space-y-3 text-sm">
-                                <li><span class="font-semibold text-stone-900">Droga Principal:</span> Trastuzumab (Cardiotóxico Tipo II)</li>
-                                <li><span class="font-semibold text-stone-900">Duración Prevista:</span> 12 meses</li>
-                                <li><span class="font-semibold text-stone-900">Frecuencia:</span> Cada 21 días</li>
-                            </ul>
-                        </div>
+a{color:inherit;}
 
-                        <!-- Column 2: Cardiovascular Basal -->
-                        <div class="bg-stone-50 rounded-xl p-5 border border-stone-200">
-                            <h3 class="text-sm font-bold text-stone-400 uppercase mb-4 flex items-center gap-2">
-                                &#129504; Estado CV Basal
-                            </h3>
-                            <ul class="space-y-3 text-sm">
-                                <li><span class="font-semibold text-stone-900">Presión Arterial:</span> 125/80 mmHg</li>
-                                <li><span class="font-semibold text-stone-900">ECG:</span> Ritmo sinusal, sin alteraciones.</li>
-                                <li><span class="font-semibold text-stone-900">Comorbilidades:</span> Hipertensión leve (controlada).</li>
-                            </ul>
-                        </div>
+/* NAV */
+.nav{
+  position:sticky; top:0; z-index:50;
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 16px 32px;
+  backdrop-filter:blur(14px);
+  background:rgba(251,247,241,0.85);
+  border-bottom:1px solid var(--rule-soft);
+}
+.logo{ display:flex; align-items:center; gap:10px; font-family:'Fraunces', serif; font-size:1.05rem; font-weight:500;}
+.logo-mark{
+  width:28px; height:28px; border-radius:50%;
+  background: radial-gradient(circle at 30% 30%, var(--rouge), var(--rouge-deep) 70%);
+}
+.nav-back{
+  font-size:0.85rem; padding: 8px 16px; border:1px solid var(--ink); background:var(--paper);
+  display:inline-flex; align-items:center; gap:8px; transition: all 0.2s;
+}
+.nav-back:hover{ background:var(--ink); color:var(--paper);}
 
-                        <!-- Column 3: Métricas Clave -->
-                        <div class="space-y-4">
-                            <div class="bg-medical-light border border-medical/20 rounded-xl p-4 flex justify-between items-center">
-                                <div>
-                                    <p class="text-xs font-bold text-medical uppercase">FEVI Basal (Ecocardiograma)</p>
-                                    <p class="text-2xl font-black text-stone-900">62<span class="text-lg text-stone-500 font-normal">%</span></p>
-                                </div>
-                                <div class="text-3xl text-medical opacity-50">&#128147;</div>
-                            </div>
-                            <div class="bg-stone-50 border border-stone-200 rounded-xl p-4 flex justify-between items-center">
-                                <div>
-                                    <p class="text-xs font-bold text-stone-500 uppercase">Troponina I (Laboratorio)</p>
-                                    <p class="text-2xl font-black text-stone-900">12<span class="text-lg text-stone-500 font-normal"> ng/L</span></p>
-                                </div>
-                                <div class="text-3xl text-stone-400 opacity-50">&#129514;</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+.container{ max-width:1200px; margin:0 auto; padding: 0 32px;}
 
-                <!-- Tab Content: Seguimiento -->
-                <div id="tab-seguimiento" class="tab-content p-6 md:p-8 bg-stone-50/50">
-                    
-                    <div class="mb-6 flex justify-between items-end">
-                        <div>
-                            <h3 class="text-lg font-bold text-stone-900">Evolución de Parámetros Cardíacos</h3>
-                            <p class="text-sm text-stone-600">Correlación entre la caída de FEVI y el aumento de biomarcadores durante el tratamiento.</p>
-                        </div>
-                        <!-- Interactive toggles for chart -->
-                        <div class="hidden md:flex gap-2">
-                            <button onclick="updateChart('all')" class="text-xs bg-white border border-stone-300 px-3 py-1.5 rounded hover:bg-stone-100 font-medium">Todos</button>
-                            <button onclick="updateChart('alert')" class="text-xs bg-rose-50 border border-rose-200 text-cardio px-3 py-1.5 rounded hover:bg-rose-100 font-medium">Ver Alerta (Mes 3)</button>
-                        </div>
-                    </div>
+/* HERO PACIENTE */
+.hero-patient{
+  padding: 90px 32px 70px;
+  background:
+    radial-gradient(ellipse at 80% 0%, var(--rouge-soft) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 60%, var(--paper-2) 0%, transparent 60%),
+    var(--paper);
+  position:relative;
+  border-bottom:1px solid var(--rule-soft);
+}
+.hero-patient .label{
+  display:inline-block;
+  font-family:'JetBrains Mono', monospace;
+  font-size:0.75rem; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--rouge);
+  padding: 4px 12px; border:1px solid var(--rouge);
+  border-radius: 30px;
+  margin-bottom:30px;
+}
+.hero-patient h1{ max-width: 900px; margin-bottom:24px;}
+.hero-patient h1 em{ font-family:'Instrument Serif', serif; font-style:italic; color:var(--rouge);}
+.hero-patient .lede{
+  font-family:'Instrument Serif', serif;
+  font-size:1.4rem; line-height:1.5; max-width:680px; color:var(--steel); font-style:italic;
+  margin-bottom: 40px;
+}
 
-                    <!-- Main Chart Container -->
-                    <div class="chart-container bg-white border border-stone-200">
-                        <canvas id="monitoringChart"></canvas>
-                    </div>
+.hero-meta{
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap:20px; margin-top: 60px;
+  padding-top:40px; border-top: 1px solid var(--rule);
+}
+.hero-meta .item{ font-size:0.92rem;}
+.hero-meta .item .l{ font-family:'JetBrains Mono', monospace; font-size:0.7rem; letter-spacing:0.15em; color:var(--steel-2); margin-bottom:8px; text-transform:uppercase;}
+.hero-meta .item .v{ font-family:'Fraunces', serif; font-size:1.15rem; line-height:1.35;}
 
-                    <!-- Insight Box -->
-                    <div class="mt-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                        <div class="flex items-start gap-3">
-                            <div class="text-amber-500 mt-0.5">&#9888;&#65039;</div>
-                            <div>
-                                <h4 class="text-sm font-bold text-amber-900">Alerta de Sistema (Regla Clínica FHIR)</h4>
-                                <p class="text-sm text-amber-800 mt-1">
-                                    En el <strong>Mes 3</strong> (Ciclo 4), se detecta una caída relativa de la FEVI > 10% (de 62% a 54%) y una elevación de Troponina (35 ng/L). Sugerencia protocolar: Iniciar IECA/Beta-bloqueantes y derivar a consulta de Cardio-Oncología antes del próximo ciclo.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+/* SECTION */
+.section{ padding: 80px 32px; border-top:1px solid var(--rule-soft);}
+.section .container > h2{ max-width:780px;}
+.lead-p{
+  font-size: 1.1rem; color:var(--steel); line-height:1.7; max-width:740px; margin: 8px 0 32px;
+}
 
-                </div>
-            </div>
-        </section>
+/* QUE ES */
+.que-es{ background: var(--paper);}
+.que-es-grid{
+  display:grid; grid-template-columns: 1.4fr 1fr; gap: 60px; margin-top: 30px; align-items:start;
+}
+.que-es p{ font-size:1.05rem; color:var(--steel); line-height:1.75; margin-bottom: 16px;}
 
-    </main>
+/* CARD HIGHLIGHT */
+.spotlight{
+  background: var(--ink); color: var(--paper);
+  padding: 44px 36px;
+  position:relative; overflow:hidden;
+}
+.spotlight h3{ color:var(--paper); font-size:1.4rem; margin-bottom:12px;}
+.spotlight p{ font-size:0.98rem; color: rgba(251,247,241,0.85); line-height:1.7;}
+.spotlight::before{
+  content:""; position:absolute; top:0; right:0; width:120px; height:120px;
+  background: radial-gradient(circle, var(--rouge), transparent 70%);
+  opacity:0.6;
+}
 
-    <!-- Footer -->
-    <footer class="bg-stone-900 text-stone-400 py-8 text-center text-sm border-t border-stone-800 mt-12">
-        <div class="max-w-6xl mx-auto px-4">
-            <p>&copy; 2026 EPA Bienestar IA | Salud Digital | Cardio Onco. Arquitectura conceptual de integración FHIR para Cardio-Oncología.</p>
-            <p class="mt-2 text-xs opacity-60">Los datos presentados son ficticios y con fines ilustrativos sobre el flujo de información.</p>
+/* SINTOMAS LIST */
+.sintomas{ background: var(--paper-2);}
+.sintomas-grid{
+  display:grid; grid-template-columns: repeat(3, 1fr);
+  gap:0; margin-top:40px;
+  border-left:1px solid var(--rule); border-top: 1px solid var(--rule);
+}
+.sintoma{
+  padding: 28px 24px;
+  border-right:1px solid var(--rule); border-bottom:1px solid var(--rule);
+  background: var(--paper);
+  display:flex; flex-direction:column; gap:10px;
+}
+.sintoma-icon{
+  width:36px; height:36px; border-radius:50%;
+  background: var(--rouge-soft); color:var(--rouge-deep);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fraunces', serif; font-size:1.1rem; font-weight:600;
+}
+.sintoma h4{ font-family:'Fraunces', serif; font-size:1.15rem; line-height:1.25; margin-top:6px;}
+.sintoma p{ font-size:0.9rem; color: var(--steel); line-height:1.55;}
+
+/* PASOS */
+.pasos{ background: var(--paper);}
+.pasos-list{ margin-top: 50px;}
+.paso{
+  display:grid; grid-template-columns: 70px 1fr 90px;
+  gap:30px; padding: 30px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items:start;
+}
+.paso:first-child{ border-top: 1px solid var(--rule);}
+.paso-num{
+  font-family:'Fraunces', serif; font-size: 2.2rem; line-height:1;
+  color:var(--rouge);
+}
+.paso-content h3{ font-size:1.4rem; margin-bottom: 8px; color:var(--ink);}
+.paso-content p{ font-size:0.98rem; color:var(--steel); line-height:1.65;}
+.paso-time{
+  font-family:'JetBrains Mono', monospace; font-size:0.7rem;
+  letter-spacing:0.12em; text-transform:uppercase;
+  padding: 4px 10px; border:1px solid var(--rule);
+  text-align:center; align-self:start;
+  color: var(--steel-2);
+}
+.paso-time.ahora{ background:var(--ink); color:var(--paper); border-color:var(--ink);}
+
+/* PDF DOWNLOAD CARD */
+.pdf-card-section{ background: var(--paper-2); }
+.pdf-card{
+  background: var(--paper);
+  border:1px solid var(--rule);
+  padding: 50px 44px;
+  display:grid; grid-template-columns: 130px 1fr auto;
+  gap: 40px; align-items:center;
+  margin-top: 40px;
+  position:relative; overflow:hidden;
+}
+.pdf-card::before{
+  content:""; position:absolute; top:0; left:0; bottom:0; width:5px; background:var(--rouge);
+}
+.pdf-icon{
+  width:130px; height:160px;
+  background: linear-gradient(160deg, #fff 0%, #f5ebde 100%);
+  border:1px solid var(--rule); position:relative;
+  box-shadow: 4px 6px 0 var(--ink);
+  display:flex; align-items:flex-end; padding: 14px;
+}
+.pdf-icon::before{
+  content:"PDF"; font-family:'JetBrains Mono', monospace; font-size:0.7rem;
+  position:absolute; top:14px; left:14px; color:var(--rouge); font-weight:600; letter-spacing:0.15em;
+}
+.pdf-icon::after{
+  content:""; position:absolute; top: 50px; left:14px; right: 14px;
+  height: 1px; background: var(--rule);
+  box-shadow: 0 6px 0 var(--rule), 0 12px 0 var(--rule), 0 18px 0 var(--rule),
+              0 24px 0 var(--rule), 0 30px 0 var(--rule), 0 36px 0 var(--rule);
+}
+.pdf-content h3{
+  font-size:1.6rem; line-height:1.2; margin-bottom: 10px; color: var(--ink);
+}
+.pdf-content .src{
+  font-family:'JetBrains Mono', monospace; font-size:0.7rem; letter-spacing:0.1em;
+  text-transform:uppercase; color: var(--rouge); margin-bottom: 14px;
+}
+.pdf-content p{ font-size:0.98rem; color: var(--steel); line-height:1.6; margin-bottom:0; max-width:520px;}
+.pdf-cta{
+  background:var(--rouge); color: var(--paper);
+  padding: 16px 24px; font-family:'Fraunces', serif; font-size:1.05rem;
+  display:inline-flex; align-items:center; gap:10px;
+  transition: all 0.2s; white-space:nowrap;
+}
+.pdf-cta:hover{ background:var(--rouge-deep); }
+.pdf-cta .arrow{ transition: transform 0.2s; font-size: 1.2rem;}
+.pdf-cta:hover .arrow{ transform: translateX(4px);}
+
+/* FAQ */
+.faq{ background: var(--paper);}
+.faq-list{ margin-top:40px; max-width:820px;}
+.faq-item{
+  border-top:1px solid var(--rule);
+  padding: 22px 0;
+}
+.faq-item:last-child{ border-bottom:1px solid var(--rule);}
+.faq-q{
+  font-family:'Fraunces', serif; font-size:1.2rem; cursor:pointer;
+  display:flex; justify-content:space-between; align-items:center; gap: 30px; line-height:1.3;
+  user-select:none; transition: color 0.2s;
+}
+.faq-q:hover{ color:var(--rouge);}
+.faq-q .toggle{
+  font-family:'JetBrains Mono', monospace; font-size:1.4rem;
+  color: var(--rouge); transition: transform 0.3s;
+  flex-shrink:0;
+}
+.faq-item.open .faq-q .toggle{ transform: rotate(45deg);}
+.faq-a{
+  max-height:0; overflow:hidden; transition: max-height 0.4s ease;
+  font-size:0.98rem; color:var(--steel); line-height:1.7;
+}
+.faq-item.open .faq-a{ max-height: 1000px; padding-top: 14px;}
+
+/* CONTACT */
+.contact{
+  background: var(--ink); color: var(--paper);
+  text-align:center; padding: 100px 32px;
+  border-top: none;
+}
+.contact h2{ color:var(--paper); font-size: clamp(2rem, 4vw, 3rem); max-width:800px; margin: 0 auto 20px;}
+.contact h2 em{ font-family:'Instrument Serif', serif; color: var(--gold); font-style:italic;}
+.contact p{ color: rgba(251,247,241,0.78); max-width:560px; margin: 0 auto 40px; font-size:1.05rem;}
+.contact-actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+.contact-btn{
+  padding: 16px 26px; background:var(--paper); color:var(--ink);
+  font-family:'Fraunces', serif; font-size:1.05rem;
+  display:inline-flex; align-items:center; gap:10px;
+  transition: all 0.2s;
+}
+.contact-btn:hover{ background:var(--rouge); color: var(--paper);}
+.contact-btn.outline{ background:transparent; color:var(--paper); border:1px solid var(--paper);}
+.contact-btn.outline:hover{ background:var(--paper); color:var(--ink);}
+
+/* DISCLAIMER */
+.disclaimer{
+  background:var(--paper-2);
+  text-align:center; padding: 40px 32px;
+  font-family:'Instrument Serif', serif; font-style:italic;
+  color: var(--steel); font-size:0.95rem; line-height:1.6;
+  max-width: 780px; margin: 0 auto;
+}
+
+/* FOOTER */
+.footer{
+  background: var(--ink); color: var(--paper);
+  padding: 50px 32px 30px;
+  text-align: center;
+  border-top: 1px solid rgba(251,247,241,0.1);
+}
+.footer p{ font-size:0.85rem; color: rgba(251,247,241,0.6); line-height:1.7;}
+.footer .footer-links{ margin-top: 20px; display:flex; justify-content:center; gap:24px; flex-wrap:wrap;}
+.footer-links a{ font-size:0.82rem; color: rgba(251,247,241,0.7); transition: color 0.2s;}
+.footer-links a:hover{ color: var(--gold);}
+
+@media(max-width: 900px){
+  .que-es-grid{ grid-template-columns: 1fr;}
+  .sintomas-grid{ grid-template-columns: 1fr 1fr;}
+  .pdf-card{ grid-template-columns: 1fr; gap: 24px; padding: 32px 24px;}
+  .pdf-icon{ margin: 0 auto;}
+  .paso{ grid-template-columns: 50px 1fr; gap: 16px;}
+  .paso-time{ display:none;}
+  .hero-meta{ grid-template-columns:1fr; gap:14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="index.html" class="logo">
+    <span class="logo-mark"></span>
+    <span><span style="color:var(--rouge);">EPA</span> · Cardio-Oncología</span>
+  </a>
+  <a href="index.html" class="nav-back">← Volver</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero-patient">
+  <div class="container">
+    <div class="label">Espacio paciente</div>
+    <h1 class="serif">
+      Tu corazón también <em>importa</em><br/>
+      durante el tratamiento <br/>contra el cáncer.
+    </h1>
+    <p class="lede">
+      Esta página explica de forma simple qué es la cardio-oncología, por qué es importante el seguimiento cardíaco y cómo funciona el programa que estamos llevando adelante junto al Hospital María Curie. Toda la información clínica de referencia proviene de la Guía 2022 de la Sociedad Europea de Cardiología.
+    </p>
+    <div class="hero-meta">
+      <div class="item">
+        <div class="l">¿Para quién es esto?</div>
+        <div class="v">Personas que reciben (o recibieron) tratamiento contra el cáncer.</div>
+      </div>
+      <div class="item">
+        <div class="l">¿Cuánto tiempo lleva leerlo?</div>
+        <div class="v">Unos 6–8 minutos.</div>
+      </div>
+      <div class="item">
+        <div class="l">¿Reemplaza al médico?</div>
+        <div class="v">No. Complementa la consulta y te ayuda a hacer mejores preguntas.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ¿QUÉ ES? -->
+<section class="section que-es" id="que-es">
+  <div class="container">
+    <h2 class="serif">¿Qué es la cardio-oncología?</h2>
+    <p class="lead-p">
+      La cardio-oncología es la rama de la medicina que se ocupa del cuidado del corazón cuando una persona recibe tratamiento contra el cáncer. Algunos tratamientos —quimioterapia, terapias dirigidas, inmunoterapia y radioterapia torácica— pueden afectar al corazón o a la circulación. A esto se lo llama <strong>cardiotoxicidad</strong>.
+    </p>
+
+    <div class="que-es-grid">
+      <div>
+        <p>
+          La buena noticia: <strong>no todas las personas que reciben estos tratamientos desarrollan cardiotoxicidad</strong>. La mayoría no la desarrolla. Y cuando aparece, si se detecta a tiempo, suele poder controlarse y, en muchos casos, revertirse.
+        </p>
+        <p>
+          Por eso el seguimiento es tan importante: <strong>permite detectar señales tempranas</strong> antes de que aparezcan síntomas. Cuanto antes se detecta, más eficaces son las medidas de protección y, sobre todo, menos probable es tener que interrumpir el tratamiento contra el cáncer.
+        </p>
+        <p>
+          El miedo a las complicaciones cardíacas <em>no debe ser un motivo para no recibir el mejor tratamiento oncológico posible</em>. Lo que hacemos es vigilar de cerca para que ese tratamiento sea, además, seguro para tu corazón.
+        </p>
+      </div>
+      <div class="spotlight">
+        <h3 class="serif">El equilibrio que buscamos</h3>
+        <p style="margin-bottom:16px;">Que recibas el mejor tratamiento contra el cáncer disponible.</p>
+        <p style="margin-bottom:16px;">Que tu corazón quede tan sano como sea posible.</p>
+        <p>Que el éxito oncológico de hoy no se convierta en una enfermedad cardíaca mañana.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SÍNTOMAS -->
+<section class="section sintomas">
+  <div class="container">
+    <h2 class="serif">Señales a las que prestar atención</h2>
+    <p class="lead-p">
+      No queremos que te alarmes con cada sensación, pero sí que estés atenta o atento. Si tenés cualquiera de estos síntomas durante o después del tratamiento contra el cáncer, contactá a tu equipo médico. Los reportes a tiempo son la herramienta más poderosa del seguimiento.
+    </p>
+    <div class="sintomas-grid">
+      <div class="sintoma">
+        <div class="sintoma-icon">1</div>
+        <h4>Falta de aire</h4>
+        <p>Disnea al hacer esfuerzos que antes hacías sin problema, o incluso en reposo.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">2</div>
+        <h4>Hinchazón en piernas</h4>
+        <p>Edemas en tobillos o piernas, especialmente al final del día.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">3</div>
+        <h4>Dolor en el pecho</h4>
+        <p>Opresión, ardor o sensación de angustia en el centro del pecho.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">4</div>
+        <h4>Palpitaciones</h4>
+        <p>Latidos rápidos, irregulares o sensación de "vuelco" del corazón.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">5</div>
+        <h4>Mareos / desmayos</h4>
+        <p>Sensación de mareo intensa, especialmente al ponerte de pie o subir escaleras.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">6</div>
+        <h4>Aumento súbito de peso</h4>
+        <p>Más de 2 kilos en 3 días puede indicar retención de líquidos.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">7</div>
+        <h4>Tos persistente</h4>
+        <p>Especialmente nocturna, sin causa aparente como un resfrío.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">8</div>
+        <h4>Presión alta</h4>
+        <p>En autocontroles domiciliarios, sobre todo si recibís terapias antiangiogénicas.</p>
+      </div>
+      <div class="sintoma">
+        <div class="sintoma-icon">9</div>
+        <h4>Fatiga inusual</h4>
+        <p>Cansancio que no mejora con el descanso y limita las actividades cotidianas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PASOS -->
+<section class="section pasos">
+  <div class="container">
+    <h2 class="serif">Cómo funciona tu seguimiento</h2>
+    <p class="lead-p">
+      El seguimiento cardio-oncológico no es algo que pase una sola vez. Es un acompañamiento que dura todo el tratamiento y se extiende después. Está organizado en tres tiempos claros.
+    </p>
+    <div class="pasos-list">
+      <div class="paso">
+        <div class="paso-num">01</div>
+        <div class="paso-content">
+          <h3 class="serif">Antes de empezar</h3>
+          <p>Hacemos una <strong>evaluación basal</strong> de tu salud cardiovascular: historia clínica, electrocardiograma, ecocardiografía y análisis de sangre. Esto nos permite conocer el punto de partida y estimar tu riesgo. Si tu riesgo es alto, te derivaremos a un cardiólogo especialista antes del primer ciclo.</p>
         </div>
-    </footer>
+        <div class="paso-time ahora">Inicio</div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">02</div>
+        <div class="paso-content">
+          <h3 class="serif">Durante el tratamiento</h3>
+          <p>Repetimos algunos estudios <strong>en momentos clave</strong>, según el tipo de tratamiento que recibís. Te pediremos que respondas cuestionarios cortos sobre cómo te sentís, y en algunos casos que registres tu presión arterial en casa. Si algo se sale del rango esperado, recibirás una notificación y avisaremos al equipo médico.</p>
+        </div>
+        <div class="paso-time">Cada ciclo</div>
+      </div>
+      <div class="paso">
+        <div class="paso-num">03</div>
+        <div class="paso-content">
+          <h3 class="serif">Después del tratamiento</h3>
+          <p>Una vez completado el tratamiento oncológico, hacemos <strong>controles a los 3 y 12 meses</strong>, y luego controles anuales. En algunos casos recomendamos un control específico a los 5 años para reorganizar el seguimiento de largo plazo. Tu corazón seguirá siendo monitoreado mientras vos lo necesites.</p>
+        </div>
+        <div class="paso-time">3m · 12m · 5a</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <!-- JavaScript Logic -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            
-            // --- 1. Tab Navigation Logic ---
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
+<!-- PDF DESCARGABLE -->
+<section class="section pdf-card-section" id="guia">
+  <div class="container">
+    <h2 class="serif">Guía completa para pacientes</h2>
+    <p class="lead-p">
+      La Sociedad Europea de Cardiología, junto con la Sociedad Española de Cardiología, publicó una versión específicamente diseñada para pacientes de la Guía ESC 2022. Es la mejor referencia escrita en lenguaje claro, con ilustraciones, sobre cardio-oncología y cardiotoxicidad.
+    </p>
+    <div class="pdf-card">
+      <div class="pdf-icon"></div>
+      <div class="pdf-content">
+        <div class="src">Sociedad Española de Cardiología · secardiologia.es</div>
+        <h3 class="serif">Guía ESC 2022 sobre cardio-oncología — versión para pacientes</h3>
+        <p>Lenguaje claro · Preguntas frecuentes · Ilustraciones explicativas · Información validada por especialistas europeos en cardio-oncología.</p>
+      </div>
+      <a href="https://secardiologia.es/images/publicaciones/guias-clinicas/2022/guia-esc-2022-pacientes-cardio-oncologia.pdf" class="pdf-cta" target="_blank" rel="noopener">
+        Leer la guía <span class="arrow">↗</span>
+      </a>
+    </div>
+    <p class="disclaimer" style="margin-top:30px;">
+      → Si el enlace no abre, también podés solicitar una copia digital al equipo del programa escribiendo a hola@epa-bienestar.com.ar
+    </p>
+  </div>
+</section>
 
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // Remove active states
-                    tabBtns.forEach(b => {
-                        b.classList.remove('text-medical', 'border-medical', 'font-bold');
-                        b.classList.add('text-stone-500', 'font-medium', 'border-transparent');
-                    });
-                    tabContents.forEach(c => c.classList.remove('active'));
+<!-- FAQ -->
+<section class="section faq" id="faq">
+  <div class="container">
+    <h2 class="serif">Preguntas frecuentes</h2>
+    <p class="lead-p">Las dudas más comunes que reciben los equipos de cardio-oncología, respondidas en lenguaje cotidiano.</p>
 
-                    // Add active state to clicked tab
-                    btn.classList.remove('text-stone-500', 'font-medium', 'border-transparent');
-                    btn.classList.add('text-medical', 'border-medical', 'font-bold');
-                    const targetId = btn.getAttribute('data-target');
-                    document.getElementById(targetId).classList.add('active');
-                });
-            });
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">¿Voy a tener problemas en el corazón sí o sí? <span class="toggle">+</span></div>
+        <div class="faq-a">No. La mayoría de las personas que reciben tratamientos contra el cáncer <strong>no</strong> desarrolla cardiotoxicidad. El riesgo depende de varios factores: tu salud cardíaca antes del tratamiento, el tipo de fármaco que recibís, la dosis acumulada, y si recibís radioterapia torácica. La evaluación basal nos ayuda a estimar tu riesgo individual y a personalizar el seguimiento.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Si aparece cardiotoxicidad, ¿hay que suspender el tratamiento contra el cáncer? <span class="toggle">+</span></div>
+        <div class="faq-a">No siempre. La decisión depende del tipo y gravedad de la afectación. En muchos casos, agregar medicación para proteger el corazón —llamada cardioprotección— permite continuar con el tratamiento oncológico. Otras veces hay que pausarlo y reanudarlo cuando el corazón se recupera. La decisión siempre se toma de manera multidisciplinar, entre tu oncólogo y tu cardiólogo, y siempre te explicarán las opciones.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Qué hago si veo una notificación con valores fuera de rango? <span class="toggle">+</span></div>
+        <div class="faq-a">No te alarmes. Las notificaciones existen para que el equipo médico actúe de forma oportuna; no significan que algo grave esté pasando. Si recibís una notificación de alerta, contactá al equipo del programa y seguí las indicaciones. Ante cualquier <strong>síntoma severo</strong> —dolor de pecho intenso, falta de aire en reposo, desmayo— concurrí al servicio de emergencias más cercano sin esperar respuesta de la plataforma.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Una vez que termine el tratamiento, ¿hasta cuándo me siguen? <span class="toggle">+</span></div>
+        <div class="faq-a">Depende de tu nivel de riesgo. En riesgo bajo, generalmente alcanza con un control al año del alta. En riesgo alto, hacemos controles a los 3 y 12 meses, y luego anuales. Para personas que recibieron antraciclinas o radioterapia torácica, se recomienda un seguimiento a largo plazo, con reestratificación a los 5 años. Algunas formas de cardiotoxicidad pueden aparecer años o incluso décadas después del tratamiento, por eso es tan importante mantener los controles a lo largo del tiempo.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Quién ve mis datos? <span class="toggle">+</span></div>
+        <div class="faq-a">Tus datos los ven exclusivamente los profesionales del equipo médico que están a cargo de tu cuidado, y los profesionales de salud que ellos te deriven (otros cardiólogos, oncólogos, hematólogos, médico de cabecera). Los datos se almacenan en formato HL7 FHIR R4, cumpliendo con la Ley 25.326 (Protección de Datos Personales) y la Ley 27.706 (Historia Clínica Electrónica). En ningún caso usamos tus datos con fines comerciales. Podés ejercer tus derechos de acceso, rectificación, cancelación u oposición en cualquier momento.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Puedo retirar mi consentimiento? <span class="toggle">+</span></div>
+        <div class="faq-a">Sí, en cualquier momento, sin necesidad de explicar el motivo. Solo tenés que escribir a hola@epa-bienestar.com.ar o pedírselo a tu equipo médico. Retirar el consentimiento no afecta tu atención médica: simplemente dejarás de recibir notificaciones automáticas y tus datos no seguirán siendo compartidos a través de la plataforma. Tu historia clínica institucional se mantiene como manda la ley.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Es lo mismo que un control con mi cardiólogo de siempre? <span class="toggle">+</span></div>
+        <div class="faq-a">No, es complementario. Tu cardiólogo o cardiólogo de cabecera sigue siendo central en tu cuidado. El programa de cardio-oncología agrega una mirada especializada en las particularidades de tu tratamiento oncológico, y aporta una capa de seguimiento estructurado que se comparte con todo el equipo. La idea es que cualquier profesional que te atienda tenga acceso a la misma información actualizada.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Necesito un smartphone o computadora para participar? <span class="toggle">+</span></div>
+        <div class="faq-a">Es deseable, pero no excluyente. Las notificaciones llegan al frontal de paciente en tu celular, lo cual facilita responder cuestionarios y registrar mediciones. Si no tenés smartphone, el equipo médico puede ayudarte a participar del programa con apoyo de un familiar o cuidador, o haciendo registros en consulta. Lo importante es que el seguimiento ocurra; el formato es secundario.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
-            // --- 2. Chart.js Implementations ---
-            
-            // Global Chart Defaults
-            Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-            Chart.defaults.color = '#57534e'; // stone-600
+<!-- CONTACT -->
+<section class="contact">
+  <h2 class="serif">¿Tenés más preguntas?<br/><em>Estamos para responderlas.</em></h2>
+  <p>El programa cuenta con un equipo médico responsable que supervisa cada etapa del seguimiento. Podés escribirnos en cualquier momento o, si ya estás incluida o incluido en el programa, ingresar a tu panel de paciente.</p>
+  <div class="contact-actions">
+    <a href="mailto:hola@epa-bienestar.com.ar" class="contact-btn">Escribir al equipo →</a>
+    <a href="https://programas.epa-bienestar.com.ar" class="contact-btn outline">Ingresar al panel paciente →</a>
+  </div>
+</section>
 
-            // A. Prevalence Donut Chart
-            const ctxPrev = document.getElementById('prevalenceChart').getContext('2d');
-            new Chart(ctxPrev, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Sin Complicaciones CV', 'Desarrolla Cardiotoxicidad'],
-                    datasets: [{
-                        data: [78, 22],
-                        backgroundColor: ['#e7e5e4', '#e11d48'], // stone-200, rose-600
-                        borderWidth: 0,
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return ' ' + context.label + ': ' + context.parsed + '%';
-                                }
-                            }
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
+<!-- FOOTER -->
+<footer class="footer">
+  <p>EPA Bienestar IA · Programa de Cardio-Oncología</p>
+  <p>En colaboración con el Servicio de Cardio-Oncología del Hospital María Curie</p>
+  <div class="footer-links">
+    <a href="index.html">Inicio</a>
+    <a href="https://info.epa-bienestar.com.ar/politica-privacidad" target="_blank" rel="noopener">Privacidad</a>
+    <a href="mailto:hola@epa-bienestar.com.ar">Derechos ARCO</a>
+    <a href="https://secardiologia.es" target="_blank" rel="noopener">secardiologia.es</a>
+  </div>
+  <p style="margin-top:16px; font-size:0.78rem;">© 2026 — Información de referencia basada en la Guía ESC 2022. No reemplaza la consulta con tu médico.</p>
+</footer>
 
-            // B. Patient Monitoring Dual Axis Line Chart
-            const ctxMon = document.getElementById('monitoringChart').getContext('2d');
-            
-            // Baseline data
-            const labels = ['Basal', 'Mes 1', 'Mes 2', 'Mes 3 (Alerta)', 'Mes 4', 'Mes 5', 'Mes 6'];
-            const dataLVEF = [62, 61, 59, 54, 53, 55, 56]; // FEVI % (drops then stabilizes after intervention)
-            const dataTrop = [12, 15, 22, 35, 28, 18, 14]; // Troponin ng/L (spikes early)
+<script>
+// FAQ toggle
+document.querySelectorAll('.faq-q').forEach(q => {
+  q.addEventListener('click', () => {
+    q.parentElement.classList.toggle('open');
+  });
+});
+</script>
 
-            window.patientChart = new Chart(ctxMon, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'FEVI (%) - Función de Bombeo',
-                            data: dataLVEF,
-                            borderColor: '#0d9488', // medical teal
-                            backgroundColor: 'rgba(13, 148, 136, 0.1)',
-                            borderWidth: 3,
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: '#0d9488',
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
-                            yAxisID: 'y',
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: 'Troponina I (ng/L) - Daño Celular',
-                            data: dataTrop,
-                            borderColor: '#e11d48', // cardio rose
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointBackgroundColor: '#e11d48',
-                            pointRadius: 4,
-                            yAxisID: 'y1',
-                            tension: 0.4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
-                        tooltip: {
-                            backgroundColor: 'rgba(28, 25, 23, 0.9)', // stone-900
-                            titleFont: { size: 13 },
-                            bodyFont: { size: 12 },
-                            padding: 10,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        // Wrap long labels conceptually by keeping tooltip clean
-                                        label = label.split(' - ')[0] + ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += context.parsed.y + (context.datasetIndex === 0 ? '%' : ' ng/L');
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false }
-                        },
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'FEVI (%)', font: { size: 11, weight: 'bold' } },
-                            min: 40,
-                            max: 70,
-                            grid: { borderDash: [2, 4], color: '#e7e5e4' } // stone-200
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: { display: true, text: 'Troponina (ng/L)', font: { size: 11, weight: 'bold' } },
-                            min: 0,
-                            max: 50,
-                            grid: { drawOnChartArea: false } // only draw grid lines for the left axis
-                        }
-                    }
-                }
-            });
-        });
-
-        // --- 3. Interactive Chart Controls ---
-        function updateChart(view) {
-            const chart = window.patientChart;
-            if (!chart) return;
-
-            if (view === 'alert') {
-                // Highlight month 3
-                chart.options.plugins.annotation = {
-                    annotations: {
-                        line1: {
-                            type: 'line',
-                            xMin: 3,
-                            xMax: 3,
-                            borderColor: '#f59e0b', // amber
-                            borderWidth: 2,
-                            label: {
-                                display: true,
-                                content: 'Punto de Alerta',
-                                position: 'start'
-                            }
-                        }
-                    }
-                };
-                
-                // Emphasize data points at index 3
-                const meta0 = chart.getDatasetMeta(0);
-                const meta1 = chart.getDatasetMeta(1);
-                
-                chart.data.datasets[0].pointRadius = [5,5,5,10,5,5,5];
-                chart.data.datasets[0].pointBackgroundColor = ['#fff','#fff','#fff','#fef3c7','#fff','#fff','#fff'];
-                chart.data.datasets[0].pointBorderColor = ['#0d9488','#0d9488','#0d9488','#d97706','#0d9488','#0d9488','#0d9488'];
-                
-                chart.data.datasets[1].pointRadius = [4,4,4,8,4,4,4];
-
-            } else {
-                // Reset
-                delete chart.options.plugins.annotation;
-                chart.data.datasets[0].pointRadius = 5;
-                chart.data.datasets[0].pointBackgroundColor = '#fff';
-                chart.data.datasets[0].pointBorderColor = '#0d9488';
-                chart.data.datasets[1].pointRadius = 4;
-            }
-            chart.update();
-        }
-
-        // --- 4. FHIR Data Simulator ---
-        const fhirSnippets = {
-            oncology: {
-                resourceType: "MedicationStatement",
-                status: "active",
-                medicationCodeableConcept: {
-                    coding: [{ system: "http://snomed.info/sct", code: "387120005", display: "Trastuzumab" }]
-                },
-                subject: { reference: "Patient/pt-98765" },
-                effectivePeriod: { start: "2026-01-10" }
-            },
-            cardiology: {
-                resourceType: "Observation",
-                status: "final",
-                category: [{ coding: [{ code: "imaging", display: "Imaging" }] }],
-                code: { coding: [{ system: "http://loinc.org", code: "10230-1", display: "Left ventricular ejection fraction" }] },
-                subject: { reference: "Patient/pt-98765" },
-                effectiveDateTime: "2026-04-12T10:00:00Z",
-                valueQuantity: { value: 54, unit: "%", system: "http://unitsofmeasure.org", code: "%" },
-                interpretation: [{ coding: [{ code: "L", display: "Low" }] }]
-            },
-            labs: {
-                resourceType: "Observation",
-                status: "final",
-                category: [{ coding: [{ code: "laboratory", display: "Laboratory" }] }],
-                code: { coding: [{ system: "http://loinc.org", code: "49563-0", display: "Troponin I.cardiac [Mass/volume] in Serum" }] },
-                subject: { reference: "Patient/pt-98765" },
-                effectiveDateTime: "2026-04-10T08:30:00Z",
-                valueQuantity: { value: 35, unit: "ng/L", system: "http://unitsofmeasure.org", code: "ng/L" },
-                referenceRange: [{ high: { value: 14, unit: "ng/L" } }]
-            },
-            fhir_server: {
-                message: "Servidor FHIR Interoperable",
-                action: "Agregando datos de múltiples fuentes...",
-                bundleType: "searchset",
-                total_resources_linked: 48,
-                associated_patient: "pt-98765",
-                trigger_active: "Clinical Decision Support Rule Evaluation: TRUE"
-            }
-        };
-
-        function showFhirData(source) {
-            const display = document.getElementById('jsonDisplay');
-            const data = fhirSnippets[source];
-            
-            // Simple animation
-            display.style.opacity = 0;
-            
-            setTimeout(() => {
-                display.textContent = JSON.stringify(data, null, 2);
-                display.style.transition = 'opacity 0.3s';
-                display.style.opacity = 1;
-            }, 150);
-        }
-    </script>
 </body>
 </html>
