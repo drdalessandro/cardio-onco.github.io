@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolución de la Salud Digital: 2024 - 2026 | Dr. D'Alessandro</title>
+<meta name="theme-palette" content="Brilliant Blues & Neon Accents (Slate, Cyan, Indigo)">
+<meta name="narrative-plan" content="1. Intro: Contexto. 2. Gráficos Evolutivos. 3. Diagrama de Flujo. 4. Módulo Gemini: Chat Clínico, Resumen de Pacientes y Visión Médica.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+        height: 350px;
+        max-height: 400px;
+    }
+    @media (min-width: 768px) {
+        .chart-container {
+            height: 400px;
+        }
+    }
+    .glass-card {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(51, 65, 85, 0.5);
+    }
+    .neon-text {
+        text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+    }
+    .flow-step {
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border-top: 4px solid #22d3ee;
+    }
+    .loading-pulse {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+    }
+</style>
+</head>
+<body class="antialiased pb-20">
+
+<nav class="sticky top-0 z-50 glass-card border-b border-slate-700 p-4 mb-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <div class="text-xl font-bold tracking-tight text-cyan-400">SaludDigital<span class="text-white">2026</span></div>
+        <div class="text-sm text-slate-400 hidden sm:block">Dr. Alejandro Sergio D'Alessandro ⚕️💻</div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <header class="text-center mb-16 mt-8">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 neon-text">
+            La Revolución de la IA en Cardiología
+        </h1>
+        <h2 class="text-2xl text-cyan-400 mb-6 font-light">Evolución e Impacto (2024 - 2026)</h2>
+        <div class="max-w-3xl mx-auto text-lg text-slate-300 leading-relaxed">
+            <p>
+                Soy el <strong>Dr. Alejandro Sergio D'Alessandro</strong>. En este 2026, la IA no solo analiza datos; colabora con nosotros. Hemos pasado de la observación a la interacción inteligente.
+            </p>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <section class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold text-white mb-4">📈 Adopción Clínica</h3>
+            <div class="chart-container">
+                <canvas id="adoptionChart"></canvas>
+            </div>
+        </section>
+
+        <section class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold text-white mb-4">⏱️ Recuperación de Tiempo</h3>
+            <div class="chart-container">
+                <canvas id="timeAllocationChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <section id="ai-hub" class="mb-12">
+        <div class="flex items-center mb-8 justify-center">
+            <span class="text-3xl mr-3">✨</span>
+            <h3 class="text-3xl font-bold text-white text-center">Centro de Inteligencia Clínica Gemini</h3>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="glass-card rounded-2xl p-6 flex flex-col h-[500px]">
+                <h4 class="text-xl font-bold text-cyan-400 mb-4 flex items-center">
+                    Copiloto de Cardiología ✨
+                </h4>
+                <div id="chat-box" class="flex-grow overflow-y-auto mb-4 space-y-4 p-2">
+                    <div class="bg-slate-800 p-3 rounded-lg text-sm">
+                        <strong>Gemini:</strong> Hola Dr. D'Alessandro. Estoy listo para analizar casos clínicos o resumir la evidencia científica de este 2026. ¿En qué puedo asistirle hoy?
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <input id="chat-input" type="text" placeholder="Ej: ¿Cuál es el protocolo de IA para insuficiencia cardíaca en 2026?" class="flex-grow bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-cyan-500 outline-none">
+                    <button onclick="handleChat()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg transition-colors font-bold">Enviar ✨</button>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <div class="glass-card rounded-2xl p-6">
+                    <h4 class="text-xl font-bold text-indigo-400 mb-2">Visión Médica Avanzada ✨</h4>
+                    <p class="text-xs text-slate-400 mb-4">Suba una imagen de ECG o Ecocardiograma para análisis estructural por IA (Simulado).</p>
+                    <div class="flex items-center justify-center w-full">
+                        <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-800 hover:bg-slate-700 transition-all">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <span class="text-2xl mb-2">📷</span>
+                                <p class="text-xs text-slate-400">Haga clic para cargar o arrastre el archivo</p>
+                            </div>
+                            <input type="file" id="image-input" class="hidden" accept="image/*" onchange="handleImageUpload(event)" />
+                        </label>
+                    </div>
+                    <div id="vision-output" class="mt-4 text-sm text-slate-300 italic min-h-[40px]"></div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6">
+                    <h4 class="text-xl font-bold text-emerald-400 mb-2">Traductor Humano-Paciente ✨</h4>
+                    <textarea id="patient-text" rows="2" placeholder="Pegue aquí el informe técnico complejo..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm mb-3 focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
+                    <button onclick="simplifyForPatient()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg font-bold">Explicar al Paciente ✨</button>
+                    <div id="patient-output" class="mt-4 p-3 bg-emerald-900/20 rounded-lg text-sm text-emerald-100 hidden"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl mb-12">
+        <h3 class="text-2xl font-bold text-white mb-4">🎯 Precisión de Diagnóstico Aumentada</h3>
+        <div class="chart-container">
+            <canvas id="accuracyChart"></canvas>
+        </div>
+    </section>
+
+</main>
+
+<footer class="border-t border-slate-800 bg-slate-900 py-8 text-center text-slate-500 text-sm">
+    <p>© 2026 Dr. Alejandro Sergio D'Alessandro | Impulsado por Gemini 2.5 Flash</p>
+</footer>
+
+<script>
+    const apiKey = ""; // La clave se inyecta en tiempo de ejecución
+    
+    async function fetchWithRetry(url, options, retries = 5) {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (response.ok) return await response.json();
+                if (response.status !== 429 && response.status < 500) break;
+            } catch (e) {}
+            await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
+        }
+        throw new Error("Error de conexión tras múltiples reintentos.");
+    }
+
+    async function handleChat() {
+        const input = document.getElementById('chat-input');
+        const box = document.getElementById('chat-box');
+        const userText = input.value.trim();
+        if (!userText) return;
+
+        appendMessage('user', userText);
+        input.value = '';
+
+        const systemPrompt = `Eres un asistente de IA especializado en cardiología y tecnología médica para el Dr. D'Alessandro en el año 2026. Tu tono es profesional, clínico y visionario. Responde con precisión médica pero con la agilidad de un tecnólogo.`;
+        
+        try {
+            const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: userText }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                })
+            });
+            const response = data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude procesar esa consulta.";
+            appendMessage('gemini', response);
+        } catch (e) {
+            appendMessage('gemini', "Lo siento, Dr. D'Alessandro, hubo un error de red. Intente de nuevo.");
+        }
+    }
+
+    function appendMessage(role, text) {
+        const box = document.getElementById('chat-box');
+        const div = document.createElement('div');
+        div.className = role === 'user' ? 'bg-indigo-900/40 p-3 rounded-lg text-sm self-end text-right ml-10' : 'bg-slate-800 p-3 rounded-lg text-sm mr-10';
+        div.innerHTML = `<strong>${role === 'user' ? 'Usted' : 'Gemini'}:</strong> ${text}`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    async function simplifyForPatient() {
+        const text = document.getElementById('patient-text').value;
+        const output = document.getElementById('patient-output');
+        if (!text) return;
+
+        output.classList.remove('hidden');
+        output.innerHTML = "<span class='loading-pulse'>Redactando explicación empática...</span>";
+
+        const prompt = `Como cardiólogo empático, traduce este informe técnico para un paciente sin conocimientos médicos. Usa un lenguaje tranquilizador pero honesto: "${text}"`;
+
+        try {
+            const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            output.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        } catch (e) {
+            output.innerText = "Error al conectar con la IA.";
+        }
+    }
+
+    async function handleImageUpload(event) {
+        const file = event.target.files[0];
+        const output = document.getElementById('vision-output');
+        if (!file) return;
+
+        output.innerHTML = "<span class='loading-pulse'>Analizando patrones biológicos en la imagen...</span>";
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const base64Data = reader.result.split(',')[1];
+            try {
+                const data = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: "Eres un sistema de visión médica. Describe los hallazgos técnicos visibles en esta imagen cardíaca y sugiere si hay anomalías rítmicas o estructurales según los estándares de 2026." },
+                                { inlineData: { mimeType: file.type, data: base64Data } }
+                            ]
+                        }]
+                    })
+                });
+                output.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            } catch (e) {
+                output.innerText = "Error en el análisis visual.";
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // --- Lógica de Charts (Preexistente corregida) ---
+    Chart.defaults.color = '#94a3b8';
+    function wrapLabel(lbl) {
+        if (lbl.length <= 16) return lbl;
+        let words = lbl.split(' ');
+        let lines = [];
+        let currentLine = '';
+        words.forEach(w => {
+            if ((currentLine + w).length > 16) { lines.push(currentLine.trim()); currentLine = w + ' '; }
+            else { currentLine += w + ' '; }
+        });
+        if (currentLine) lines.push(currentLine.trim());
+        return lines;
+    }
+
+    const tipCfg = { callbacks: { title: (items) => { let l = items[0].chart.data.labels[items[0].dataIndex]; return Array.isArray(l) ? l.join(' ') : l; } } };
+
+    new Chart(document.getElementById('adoptionChart'), {
+        type: 'line',
+        data: {
+            labels: ['2024', '2025', '2026'],
+            datasets: [{ label: 'Adopción IA', data: [20, 55, 92], borderColor: '#22d3ee', tension: 0.4, fill: true, backgroundColor: 'rgba(34, 211, 238, 0.1)' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tipCfg } }
+    });
+
+    new Chart(document.getElementById('timeAllocationChart'), {
+        type: 'doughnut',
+        data: {
+            labels: [wrapLabel('Tareas Administrativas'), wrapLabel('Atención al Paciente')],
+            datasets: [{ data: [15, 85], backgroundColor: ['#ef4444', '#22d3ee'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tipCfg } }
+    });
+
+    new Chart(document.getElementById('accuracyChart'), {
+        type: 'bar',
+        data: {
+            labels: [wrapLabel('Diagnóstico ECG'), wrapLabel('Detección Falla')],
+            datasets: [
+                { label: 'Tradicional', data: [75, 60], backgroundColor: '#475569' },
+                { label: 'Con IA ✨', data: [98, 94], backgroundColor: '#a855f7' }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tipCfg } }
+    });
+</script>
+</body>
+</html>
